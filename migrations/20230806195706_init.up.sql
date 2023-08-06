@@ -1,0 +1,35 @@
+CREATE TABLE users (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  username VARCHAR(255) NOT NULL UNIQUE,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  password VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE posts (
+  id SERIAL PRIMARY KEY,
+  title VARCHAR(255) NOT NULL UNIQUE,
+  content TEXT NOT NULL,
+  date_published timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  author_id INT NOT NULL REFERENCES users (id),
+  category_id INT NOT NULL
+);
+
+CREATE TABLE categories (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE tags (
+  id SERIAL NOT NULL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE comments (
+  id SERIAL NOT NULL PRIMARY KEY,
+  post_id INT NOT NULL REFERENCES posts (id),
+  author_id INT NOT NULL REFERENCES users (id),
+  content TEXT NOT NULL,
+  date_created TIMESTAMP NOT NULL
+);
+
