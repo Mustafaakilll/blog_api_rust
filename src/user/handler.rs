@@ -8,10 +8,11 @@ use hyper::StatusCode;
 use jsonwebtoken::{encode, EncodingKey, Header};
 use rand_core::OsRng;
 use serde_json::json;
+use sqlx::Row;
 
-use crate::{state::AppState, user::model::User};
+use crate::{posts::model::Post, state::AppState, user::model::User};
 
-use super::model::{LoginUser, RegisterUser, TokenClaims};
+use super::model::{LoginUser, RegisterUser, TokenClaims, UserPostResponse};
 
 pub async fn register_user_handler(
     State(state): State<AppState>,
@@ -142,9 +143,26 @@ pub async fn login_handler(
 
 pub async fn get_me_handler(
     Extension(data): Extension<User>,
+    State(app_state): State<AppState>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
     let user = data.filter_user_record();
-    return Ok(Json(json!({"status": "success", "user": user})));
+    let posts = sqlx::query_as::<_, Post>("select * from posts where author_id=$1")
+        .bind(user.id)
+        .fetch_all(&app_state.db)
+        .await
+        .map_err(|e| {
+            dbg!(&e);
+
+            let error_response = serde_json::json!({
+                "status": "fail",
+                "message": format!("Database error: {}", e),
+            });
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(error_response))
+        })?;
+
+    return Ok(Json(
+        json!({"status": "success", "user": user, "posts": posts}),
+    ));
 }
 
 pub async fn logout_handler() -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
