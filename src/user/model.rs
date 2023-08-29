@@ -1,3 +1,5 @@
+use crate::posts::model::Post;
+
 #[derive(Debug, serde::Deserialize, sqlx::FromRow, serde::Serialize, Clone)]
 pub struct User {
     pub id: i32,
@@ -34,6 +36,26 @@ pub struct UserResponse {
     pub name: String,
     pub username: String,
     pub email: String,
+}
+
+#[derive(Debug, serde::Deserialize, sqlx::FromRow, serde::Serialize, Clone)]
+pub struct UserPostResponse {
+    pub name: String,
+    pub username: String,
+    pub email: String,
+
+    pub posts: Vec<Post>,
+}
+
+impl UserPostResponse {
+    pub fn response(user: UserResponse, post: Vec<Post>) -> UserPostResponse {
+        return UserPostResponse {
+            name: user.name,
+            username: user.username,
+            email: user.email,
+            posts: post,
+        };
+    }
 }
 
 impl User {

@@ -1,0 +1,69 @@
+use axum::{
+    extract::{Path, State},
+    response::IntoResponse,
+    Extension, Json,
+};
+use hyper::StatusCode;
+
+use crate::{posts::model::Post, state::AppState, user::model::User};
+
+use super::model::NewPost;
+
+pub async fn get_posts_handler(
+    State(state): State<AppState>,
+) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
+    let posts = sqlx::query_as!(Post, "select * from posts")
+        .fetch_all(&state.db)
+        .await
+        .map_err(|e| {
+            let response = Json(serde_json::json!({ "status": "fail","message": e.to_string() }));
+            (StatusCode::INTERNAL_SERVER_ERROR, response)
+        })?;
+
+    let response = serde_json::json!({ "data": posts, "status": "success" });
+
+    return Ok((StatusCode::OK, Json(response)));
+}
+
+pub async fn get_post_by_id_handler(
+    State(state): State<AppState>,
+    Path(id): Path<i32>,
+) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
+    let posts = sqlx::query_as!(Post, "select * from posts where id = $1", id)
+        .fetch_one(&state.db)
+        .await
+        .map_err(|e| {
+            let response = Json(serde_json::json!({ "status": "fail","message": e.to_string() }));
+            (StatusCode::INTERNAL_SERVER_ERROR, response)
+        })?;
+
+    let response = serde_json::json!({ "data": posts,"status": "success" });
+
+    return Ok((StatusCode::OK, Json(response)));
+}
+
+pub async fn create_posts_handler(
+    Extension(user): Extension<User>,
+    State(state): State<AppState>,
+    Json(new_post): Json<NewPost>,
+) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
+    let user_id = user.id;
+
+    let post = sqlx::query_as::<_,Post>(
+        "insert into posts (title, content, author_id, category_id) values ($1, $2, $3, $4) returning *",
+         )
+        .bind(new_post.title)
+        .bind(new_post.content)
+        .bind(user_id)
+        .bind(new_post.category_id)
+        .fetch_one(&state.db)
+        .await
+        .map_err(|e|{
+            let response = Json(serde_json::json!({ "status": "fail","message": e.to_string() }));
+            (StatusCode::INTERNAL_SERVER_ERROR, response)
+        })?;
+
+    let response = Json(serde_json::json!({ "data": post, "status": "success" }));
+
+    return Ok((StatusCode::OK, response));
+}

@@ -7,7 +7,7 @@ use axum::{
 use crate::state::AppState;
 
 use super::{
-    handler::{get_me_handler, login_handler, logout_handler, register_user_handler},
+    handler::{get_profile_handler, login_handler, logout_handler, register_user_handler},
     middleware::auth_middleware,
 };
 
@@ -19,7 +19,7 @@ impl UserRouter {
             .route("/login", post(login_handler))
             .route(
                 "/me",
-                get(get_me_handler).route_layer(middleware::from_fn_with_state(
+                get(get_profile_handler).route_layer(middleware::from_fn_with_state(
                     state.clone(),
                     auth_middleware,
                 )),

@@ -8,7 +8,6 @@ use hyper::StatusCode;
 use jsonwebtoken::{encode, EncodingKey, Header};
 use rand_core::OsRng;
 use serde_json::json;
-use sqlx::Row;
 
 use crate::{posts::model::Post, state::AppState, user::model::User};
 
@@ -141,7 +140,7 @@ pub async fn login_handler(
     ));
 }
 
-pub async fn get_me_handler(
+pub async fn get_profile_handler(
     Extension(data): Extension<User>,
     State(app_state): State<AppState>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
@@ -160,9 +159,9 @@ pub async fn get_me_handler(
             (StatusCode::INTERNAL_SERVER_ERROR, Json(error_response))
         })?;
 
-    return Ok(Json(
-        json!({"status": "success", "user": user, "posts": posts}),
-    ));
+    let res = UserPostResponse::response(user, posts);
+
+    return Ok(Json(json!({"status": "success", "data":res})));
 }
 
 pub async fn logout_handler() -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
